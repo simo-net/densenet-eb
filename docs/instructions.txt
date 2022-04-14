@@ -1,0 +1,38 @@
+# --> Install the tensorflow's latest-gpu image
+
+# Install GPU-enabled tesnorflow docker image:
+docker run --gpus all -it --rm tensorflow/tensorflow:latest-gpu
+
+# To test, open the container:
+docker run --gpus all -it tensorflow/tensorflow:latest-gpu bash
+
+# Open python terminal from inside the container:
+python
+
+# And check if tensorflow can see the GPU
+import tensorflow as tf
+tf.config.list_physical_devices('GPU')
+
+
+
+--> Inherit from tensorflow's latest-gpu image to build new docker image (called projects/tensorflow:cnn2d, having custom project in /home/cnn2d)
+
+# Create a Dockerfile specifying the following:
+FROM tensorflow/tensorflow:latest-gpu
+MAINTAINER simonet
+WORKDIR /home/cnn2d
+COPY cnn2d ./
+RUN pip install -r requirements.txt
+
+# Build the new docker image projects/tensorflow:cnn2d
+docker image build -t projects/tensorflow:cnn2d ~/cnn2d
+
+# Check whether it was succesfully built
+docker images
+
+# Run the container
+cd /path/to/Dockerfile
+docker run --gpus all -it projects/tensorflow:cnn2d bash
+
+# Run a script from inside the container
+python /home/cnn2d/code/densenet-2channels.py  --data_path /home/cnn2d/data/N-MNIST  --validation_split 0.2  --batch_size 100  --epochs 300  --lr 0.01  --dropout 0.2  --patience 10  --random_seed 0
