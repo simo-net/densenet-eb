@@ -3,11 +3,11 @@ import json
 import argparse
 import tensorflow as tf
 from pandas import DataFrame
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 # Usage:
-# python3 /home/cnn2d/code/densenet-grayscale.py  --data_path /home/cnn2d/data/N-MNIST  --validation_split 0.2  --batch_size 100  --epochs 300  --lr 0.01  --dropout 0.2  --patience 10  --random_seed 0
-# python3 /home/cnn2d/code/densenet-grayscale.py  --data_path /home/cnn2d/data/FN-MNIST  --validation_split 0.2  --batch_size 100  --epochs 300  --lr 0.01  --dropout 0.2  --patience 10  --random_seed 0
+# python3 /home/cnn2d/code/densenet-grayscale.py  --data_path /home/cnn2d/data/N-MNIST  --log_path /home/cnn2d/data/logs/N-MNIST  --validation_split 0.2  --batch_size 100  --epochs 300  --lr 0.01  --dropout 0.2  --patience 10  --random_seed 0
+# python3 /home/cnn2d/code/densenet-grayscale.py  --data_path /home/cnn2d/data/FN-MNIST  --log_path /home/cnn2d/data/logs/FN-MNIST  --validation_split 0.2  --batch_size 100  --epochs 300  --lr 0.01  --dropout 0.2  --patience 10  --random_seed 0
 
 
 NUM_CLASSES = 10
@@ -18,13 +18,16 @@ NUM_TEST_SAMPLES = 10000 * 10
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description='Training a 2D-CNN with DenseNet architecture on grayscale images from N-MNIST or FN-MNIST\n'
-                    'and save results to {/directory/to/data/folder}/logs (3 files will be created: checkpoint,\n'
+        description='Training a 2D-CNN with DenseNet architecture on two-channeled (ON and OFF) images from the\n'
+                    'data_path and save results to the given log_path (3 files will be created here: checkpoint,\n'
                     'model.json and model_weights_final.hdf5).')
 
     parser.add_argument('--data_path', type=str, required=True,
                         help='Directory where all data is stored (must contain a "train" and a "test" folder\n'
                              'with all RGB images).')
+    parser.add_argument('--log_path', type=str, required=True,
+                        help='Directory where to store the logs of the model (training history, architecture and\n'
+                             'final weights).')
 
     parser.add_argument('--validation_split', type=float, default=0.2,
                         help='Fraction of the training dataset to use as validation. Default is 0.2.')
@@ -38,6 +41,8 @@ def parse_args():
                         help='Fraction of input units to dropout in the readout layer during training. Default is 0.2.')
     parser.add_argument('--patience', type=int, default=10,
                         help='Number of epochs early-stopping patience. Default is 10.')
+    parser.add_argument('--early_stopping', action="store_true", default=False,
+                        help='Whether to use early stopping. Default is False.')
 
     parser.add_argument('--random_seed', type=int, default=None,
                         help='The random seed to use for reproducibility. Default is None.')
@@ -84,7 +89,8 @@ def build_model(input_shape: tuple,
     model = tf.keras.Model(inputs, outputs, name="DenseNet")
 
     # Compile
-    model.compile(optimizer=tf.keras.optimizers.SGD(lr=lr), loss="categorical_crossentropy", metrics=["accuracy"])
+    model.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=lr),
+                  loss="categorical_crossentropy", metrics=["accuracy"])
     # We could also possibly try: optimizer = keras.optimizers.Adam(learning_rate=lr)
     # We could also possibly try: loss = keras.losses.SparseCategoricalCrossentropy()
 
@@ -111,7 +117,7 @@ def train(training_set, validation_set, model,
                                                      save_best_only=True, save_freq='epoch')
 
     # Train the model
-    history = model.fit(training_set, validation_data=validation_set,  # validation_split=validation_split, batch_size=batch_size,
+    history = model.fit(training_set, validation_data=validation_set,
                         epochs=epochs, steps_per_epoch=steps_per_epoch, validation_steps=validation_steps,
                         callbacks=[es_callback, cp_callback] if early_stop else [cp_callback],
                         verbose=True)
@@ -131,15 +137,15 @@ def evaluate(test_set, model, history):
     # Plot 1
     DataFrame(history.history).plot()
 
-    # # Plot 2
-    # fig, axs = plt.subplots(figsize=(16, 5), nrows=1, ncols=2)
-    # axs[0].plot(history.history['val_loss'])
-    # axs[0].set_title('Validation Loss History')
-    # axs[0].set(xlabel='# epochs', ylabel='Loss value')
-    # axs[1].plot(history.history['val_accuracy'])
-    # axs[1].set_title('Validation Accuracy History')
-    # axs[1].set(xlabel='# epochs', ylabel='Accuracy value')
-    # plt.show()
+    # Plot 2
+    fig, axs = plt.subplots(figsize=(16, 5), nrows=1, ncols=2)
+    axs[0].plot(history.history['val_loss'])
+    axs[0].set_title('Validation Loss History')
+    axs[0].set(xlabel='# epochs', ylabel='Loss value')
+    axs[1].plot(history.history['val_accuracy'])
+    axs[1].set_title('Validation Accuracy History')
+    axs[1].set(xlabel='# epochs', ylabel='Accuracy value')
+    plt.show()
 
 
 class NoGPUError(Exception):
@@ -150,10 +156,7 @@ def main():
 
     # Load all given parameters --------------------------------------------------------------------#
     args = parse_args()
-
-    # Define output log directory ------------------------------------------------------------------#
-    logdir = args.data_path.replace('data', 'logs')
-    os.makedirs(logdir, exist_ok=True)
+    os.makedirs(args.log_path, exist_ok=True)
 
     # Check if GPU is available --------------------------------------------------------------------#
     if not tf.config.list_physical_devices('GPU'):
@@ -178,7 +181,7 @@ def main():
     print('\n\nBuilding the model...')
     model = build_model(input_shape=(*IMG_SHAPE, 1),
                         top_dropout_rate=args.dropout, lr=args.lr,
-                        model_file=os.path.join(logdir,'model.json'))
+                        model_file=os.path.join(args.log_path,'model.json'))
 
     # Train the model ------------------------------------------------------------------------------#
     print('\n\nTraining the model...')
@@ -189,8 +192,8 @@ def main():
                            steps_per_epoch=int(NUM_TRAIN_SAMPLES*(1-args.validation_split))//args.batch_size,
                            validation_steps=int(NUM_TRAIN_SAMPLES*args.validation_split)//args.batch_size,
                            early_stop=args.early_stopping, patience=args.patience,
-                           checkpoint_path=os.path.join(logdir,'checkpoint'),
-                           weights_file=os.path.join(logdir,'model_weights_final.hdf5'))
+                           checkpoint_path=os.path.join(args.log_path,'checkpoint'),
+                           weights_file=os.path.join(args.log_path,'model_weights_final.hdf5'))
 
     # Load the test data ---------------------------------------------------------------------------#
     print('\n\nLoading the test data...')
