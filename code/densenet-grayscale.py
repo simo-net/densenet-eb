@@ -18,7 +18,7 @@ NUM_TEST_SAMPLES = 10000 * 10
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description='Training a 2D-CNN with DenseNet architecture on two-channeled (ON and OFF) images from the\n'
+        description='Training a 2D-CNN with DenseNet architecture on grayscale (sum of polarities) images from the\n'
                     'data_path and save results to the given log_path (3 files will be created here: checkpoint,\n'
                     'model.json and model_weights_final.hdf5).')
 

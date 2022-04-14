@@ -1,6 +1,8 @@
 # --> Install the tensorflow's latest-gpu image
 
-# Install GPU-enabled tesnorflow docker image:
+# Pull and install GPU-enabled tesnorflow docker image:
+docker pull tensorflow/tensorflow:latest-gpu
+(or "docker pull tensorflow/tensorflow:latest-gpu-jupyter")
 docker run --gpus all -it --rm tensorflow/tensorflow:latest-gpu
 
 # To test, open the container:
@@ -24,15 +26,17 @@ WORKDIR /home/cnn2d
 COPY cnn2d ./
 RUN pip install -r requirements.txt
 
-# Build the new docker image projects/tensorflow:cnn2d
+# Build the new docker image projects/tensorflow:cnn2d [ACHTUNG: never copy data inside the docker image, thus specifiy the data folder in the .dockerignore]
 docker image build -t projects/tensorflow:cnn2d ~/cnn2d
 
 # Check whether it was succesfully built
 docker images
 
 # Run the container
-cd /path/to/Dockerfile
 docker run --gpus all -it projects/tensorflow:cnn2d bash
 
-# Run a script from inside the container
-python /home/cnn2d/code/densenet-2channels.py  --data_path /home/cnn2d/data/N-MNIST  --validation_split 0.2  --batch_size 100  --epochs 300  --lr 0.01  --dropout 0.2  --patience 10  --random_seed 0
+# Mount data folder in the container
+docker run -v $PWD/cnn2d/data:/home/cnn2d/data --gpus all -it projects/tensorflow:cnn2d bash
+
+# Mount data folder in the container and run the script
+docker run -v $PWD/cnn2d/data:/home/cnn2d/data --gpus all -it projects/tensorflow:cnn2d-new python ./code/densenet-2channels.py --data_path ./data/N-MNIST  --log_path ./data/logs/N-MNIST  --validation_split 0.2  --batch_size 100  --epochs 300  --lr 0.01  --dropout 0.2  --patience 10
