@@ -21,15 +21,18 @@ tf.config.list_physical_devices('GPU')
 
 # Create a Dockerfile specifying the following:
 FROM tensorflow/tensorflow:latest-gpu
-MAINTAINER simonet
+MAINTAINER whatever
 WORKDIR /home/cnn2d
-COPY cnn2d ./
+COPY . ./
+RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
-# Build the new docker image projects/tensorflow:cnn2d [ACHTUNG: never copy data inside the docker image, thus specifiy the data folder in the .dockerignore]
+# Build the new docker image projects/tensorflow:cnn2d
 docker image build -t projects/tensorflow:cnn2d ~/cnn2d
 
-# Check whether it was succesfully built
+***ACHTUNG: never copy data inside the docker image, thus if your data folder is in the same directory as the Dockerfile, specify the data folder in the .dockerignore and mount this folder in the container when running the script in order for it to see the local data folder***
+
+# Check whether it was successfully built
 docker images
 
 # Run the container
@@ -39,4 +42,4 @@ docker run --gpus all -it projects/tensorflow:cnn2d bash
 docker run -v $PWD/cnn2d/data:/home/cnn2d/data --gpus all -it projects/tensorflow:cnn2d bash
 
 # Mount data folder in the container and run the script
-docker run -v $PWD/cnn2d/data:/home/cnn2d/data --gpus all -it projects/tensorflow:cnn2d-new python ./code/densenet-2channels.py --data_path ./data/N-MNIST  --log_path ./data/logs/N-MNIST  --validation_split 0.2  --batch_size 100  --epochs 300  --lr 0.01  --dropout 0.2
+docker run -v $PWD/cnn2d/data:/home/cnn2d/data --gpus all -it projects/tensorflow:cnn2d python ./code/densenet-2channels.py --data_path ./data/N-MNIST  --log_path ./data/logs/N-MNIST  --validation_split 0.2  --batch_size 100  --epochs 300  --lr 0.01  --dropout 0.2
