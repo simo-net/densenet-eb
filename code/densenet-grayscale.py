@@ -6,8 +6,8 @@ from pandas import DataFrame
 import matplotlib.pyplot as plt
 
 # Usage:
-# python3 /home/cnn2d/code/densenet-grayscale.py  --data_path /home/cnn2d/data/N-MNIST  --log_path /home/cnn2d/data/logs/N-MNIST  --validation_split 0.2  --batch_size 100  --epochs 300  --lr 0.01  --dropout 0.2  --patience 10  --random_seed 0
-# python3 /home/cnn2d/code/densenet-grayscale.py  --data_path /home/cnn2d/data/FN-MNIST  --log_path /home/cnn2d/data/logs/FN-MNIST  --validation_split 0.2  --batch_size 100  --epochs 300  --lr 0.01  --dropout 0.2  --patience 10  --random_seed 0
+# python3 /home/cnn2d/code/densenet-grayscale.py  --data_path /home/cnn2d/data/N-MNIST  --log_path /home/cnn2d/data/logs/N-MNIST  --validation_split 0.2  --batch_size 100  --epochs 300  --lr 0.01  --dropout 0.2  --random_seed 0
+# python3 /home/cnn2d/code/densenet-grayscale.py  --data_path /home/cnn2d/data/FN-MNIST  --log_path /home/cnn2d/data/logs/FN-MNIST  --validation_split 0.2  --batch_size 100  --epochs 300  --lr 0.01  --dropout 0.2  --random_seed 0
 
 
 NUM_CLASSES = 10
@@ -39,10 +39,10 @@ def parse_args():
                         help='The learning rate to use for training the model. Default is 0.01.')
     parser.add_argument('--dropout', type=float, default=0.2,
                         help='Fraction of input units to dropout in the readout layer during training. Default is 0.2.')
-    parser.add_argument('--patience', type=int, default=10,
-                        help='Number of epochs early-stopping patience. Default is 10.')
     parser.add_argument('--early_stopping', action="store_true", default=False,
                         help='Whether to use early stopping. Default is False.')
+    parser.add_argument('--patience', type=int, default=10,
+                        help='Number of epochs early-stopping patience. Default is 10.')
 
     parser.add_argument('--random_seed', type=int, default=None,
                         help='The random seed to use for reproducibility. Default is None.')
