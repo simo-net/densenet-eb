@@ -1,5 +1,6 @@
 import os
 import json
+import pickle
 import argparse
 import tensorflow as tf
 from pandas import DataFrame
@@ -72,7 +73,7 @@ def load_data(path: str,
 
 def build_model(input_shape: tuple,
                 top_dropout_rate: float, lr: float,
-                model_file: str = None):
+                model_file: str = '../logs/model.json'):
 
     # Build model from DenseNet
     inputs = tf.keras.layers.Input(shape=input_shape)
@@ -96,9 +97,8 @@ def build_model(input_shape: tuple,
 
     # Print and store model info
     model.summary()
-    if isinstance(model_file, str):
-        with open(model_file, 'w+') as outfile:
-            outfile.write(json.dumps(json.loads(model.to_json()), indent=2))
+    with open(model_file, 'w+') as outfile:
+        outfile.write(json.dumps(json.loads(model.to_json()), indent=2))
 
     return model
 
@@ -106,7 +106,9 @@ def build_model(input_shape: tuple,
 def train(training_set, validation_set, model,
           epochs: int, steps_per_epoch: int = None, validation_steps: int = None,
           early_stop: bool = True, patience: int = 10,
-          checkpoint_path: str = '../logs/checkpoint', weights_file: str = None):
+          checkpoint_file: str = '../logs/checkpoint',
+          history_file: str = '../logs/history',
+          weights_file: str = '../logs/final_weights.hdf5'):
 
     # Build the early-stopping and checkpoint callbacks
     es_callback = tf.keras.callbacks.EarlyStopping(
@@ -117,7 +119,7 @@ def train(training_set, validation_set, model,
     cp_callback = tf.keras.callbacks.ModelCheckpoint(
         monitor='val_loss', mode='min',
         # monitor='val_accuracy', mode='max',
-        filepath=checkpoint_path, save_weights_only=True, save_best_only=True, save_freq='epoch',
+        filepath=checkpoint_file, save_weights_only=True, save_best_only=True, save_freq='epoch',
         verbose=True)
 
     # Train the model
@@ -126,14 +128,18 @@ def train(training_set, validation_set, model,
                         callbacks=[es_callback, cp_callback] if early_stop else [cp_callback],
                         verbose=True)
 
+    # Store training history
+    with open(history_file, 'wb') as outfile:
+        pickle.dump(history.history, outfile)
+    # Read as: history = pickle.load(open(history_file), "rb")
+
     # Store trained weights
-    if isinstance(weights_file, str):
-        model.save_weights(weights_file)
+    model.save_weights(weights_file)
 
     return model, history
 
 
-def evaluate(test_set, model, history):
+def evaluate(model, test_set, history):
     # Print score
     loss, acc = model.evaluate(test_set, verbose=1)
     print(f'Performance: loss = {round(loss,4)}, accuracy {round(acc,4)}')
@@ -188,7 +194,7 @@ def main():
     print('\n\nBuilding the model...')
     model = build_model(input_shape=(*IMG_SHAPE, 1),
                         top_dropout_rate=args.dropout, lr=args.lr,
-                        model_file=os.path.join(log_path,'model.json'))
+                        model_file=os.path.join(log_path, 'model.json'))
 
     # Train the model ------------------------------------------------------------------------------#
     print('\n\nTraining the model...')
@@ -199,8 +205,9 @@ def main():
                            steps_per_epoch=int(NUM_TRAIN_SAMPLES*(1-args.validation_split))//args.batch_size,
                            validation_steps=int(NUM_TRAIN_SAMPLES*args.validation_split)//args.batch_size,
                            early_stop=args.early_stopping, patience=args.patience,
-                           checkpoint_path=os.path.join(args.log_path,'checkpoint'),
-                           weights_file=os.path.join(log_path,'model_weights_final.hdf5'))
+                           checkpoint_file=os.path.join(log_path, 'checkpoint'),
+                           history_file=os.path.join(log_path, 'history'),
+                           weights_file=os.path.join(log_path, 'final_weights.hdf5'))
 
     # Load the test data ---------------------------------------------------------------------------#
     print('\n\nLoading the test data...')
