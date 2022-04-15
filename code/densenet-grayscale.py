@@ -6,8 +6,8 @@ from pandas import DataFrame
 import matplotlib.pyplot as plt
 
 # Usage:
-# python3 /home/cnn2d/code/densenet-grayscale.py  --data_path /home/cnn2d/data/N-MNIST  --log_path /home/cnn2d/data/logs/N-MNIST  --validation_split 0.2  --batch_size 100  --epochs 300  --lr 0.01  --dropout 0.2  --random_seed 0
-# python3 /home/cnn2d/code/densenet-grayscale.py  --data_path /home/cnn2d/data/FN-MNIST  --log_path /home/cnn2d/data/logs/FN-MNIST  --validation_split 0.2  --batch_size 100  --epochs 300  --lr 0.01  --dropout 0.2  --random_seed 0
+# python3 /home/cnn2d/code/densenet-grayscale.py  --data_path /home/cnn2d/data/N-MNIST  --validation_split 0.2  --batch_size 100  --epochs 300  --lr 0.01  --dropout 0.2  --early_stopping  --patience 20
+# python3 /home/cnn2d/code/densenet-grayscale.py  --data_path /home/cnn2d/data/FN-MNIST  --validation_split 0.2  --batch_size 100  --epochs 300  --lr 0.01  --dropout 0.2  --early_stopping  --patience 20
 
 
 NUM_CLASSES = 10
@@ -25,7 +25,7 @@ def parse_args():
     parser.add_argument('--data_path', type=str, required=True,
                         help='Directory where all data is stored (must contain a "train" and a "test" folder\n'
                              'with all RGB images).')
-    parser.add_argument('--log_path', type=str, required=True,
+    parser.add_argument('--log_path', type=str, default=None,
                         help='Directory where to store the logs of the model (training history, architecture and\n'
                              'final weights).')
 
@@ -42,7 +42,7 @@ def parse_args():
     parser.add_argument('--early_stopping', action="store_true", default=False,
                         help='Whether to use early stopping. Default is False.')
     parser.add_argument('--patience', type=int, default=10,
-                        help='Number of epochs early-stopping patience. Default is 10.')
+                        help='Number of epochs to use as early-stopping patience. Default is 10.')
 
     parser.add_argument('--random_seed', type=int, default=None,
                         help='The random seed to use for reproducibility. Default is None.')
@@ -108,13 +108,17 @@ def train(training_set, validation_set, model,
           early_stop: bool = True, patience: int = 10,
           checkpoint_path: str = '../logs/checkpoint', weights_file: str = None):
 
-    # Build the checkpoint
-    es_callback = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', mode='max',
-                                                   patience=patience,
-                                                   verbose=1)
-    cp_callback = tf.keras.callbacks.ModelCheckpoint(monitor='val_accuracy', mode='max',
-                                                     filepath=checkpoint_path, save_weights_only=True,
-                                                     save_best_only=True, save_freq='epoch')
+    # Build the early-stopping and checkpoint callbacks
+    es_callback = tf.keras.callbacks.EarlyStopping(
+        monitor='val_loss', mode='min',
+        # monitor='val_accuracy', mode='max',
+        patience=patience, restore_best_weights=True,
+        verbose=True)
+    cp_callback = tf.keras.callbacks.ModelCheckpoint(
+        monitor='val_loss', mode='min',
+        # monitor='val_accuracy', mode='max',
+        filepath=checkpoint_path, save_weights_only=True, save_best_only=True, save_freq='epoch',
+        verbose=True)
 
     # Train the model
     history = model.fit(training_set, validation_data=validation_set,
@@ -156,7 +160,10 @@ def main():
 
     # Load all given parameters --------------------------------------------------------------------#
     args = parse_args()
-    os.makedirs(args.log_path, exist_ok=True)
+    log_path = args.log_path
+    if log_path is None or not isinstance(log_path, str):
+        log_path = os.path.join(os.path.dirname(args.data_path), 'logs', os.path.basename(args.data_path))
+    os.makedirs(log_path, exist_ok=True)
 
     # Check if GPU is available --------------------------------------------------------------------#
     if not tf.config.list_physical_devices('GPU'):
@@ -181,7 +188,7 @@ def main():
     print('\n\nBuilding the model...')
     model = build_model(input_shape=(*IMG_SHAPE, 1),
                         top_dropout_rate=args.dropout, lr=args.lr,
-                        model_file=os.path.join(args.log_path,'model.json'))
+                        model_file=os.path.join(log_path,'model.json'))
 
     # Train the model ------------------------------------------------------------------------------#
     print('\n\nTraining the model...')
@@ -193,7 +200,7 @@ def main():
                            validation_steps=int(NUM_TRAIN_SAMPLES*args.validation_split)//args.batch_size,
                            early_stop=args.early_stopping, patience=args.patience,
                            checkpoint_path=os.path.join(args.log_path,'checkpoint'),
-                           weights_file=os.path.join(args.log_path,'model_weights_final.hdf5'))
+                           weights_file=os.path.join(log_path,'model_weights_final.hdf5'))
 
     # Load the test data ---------------------------------------------------------------------------#
     print('\n\nLoading the test data...')
