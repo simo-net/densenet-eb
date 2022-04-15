@@ -1,9 +1,12 @@
 ## DenseNet for Neuromorphic Datasets
 
 This repository contains the code for training a 2D-CNN with DenseNet architecture on both
-the (Neuromorphic) N-MNIST and the (Fixational Neuromorphic) FN-MNIST for benchmarking the
-spatial information in them. Two different scripts are available, for using either grayscale
-frames (1 channel) or both ON/OFF polarities (2 channels).
+the (Neuromorphic) N-MNIST and the (Fixational Neuromorphic) FN-MNIST datasets.
+The aim is to benchmark the spatial information of such event-based data. Two different scripts are available,
+for using either grayscale frames (1 channel) or both ON/OFF polarities (2 channels) accumulated from the events.
+Unfortunately data cannot be uploaded due to its size. Finally, a Dockerfile is available for building a 
+docker image (based on the tensorflow/tensorflow:latest-gpu image) in order to run the scripts from the relative 
+docker container (see the file in the _docs_ folder for further info).
 
 
 ### 1 - Training with two-channeled frames
