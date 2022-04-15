@@ -20,8 +20,8 @@ NUM_TEST_SAMPLES = 10000 * 10
 def parse_args():
     parser = argparse.ArgumentParser(
         description='Training a 2D-CNN with DenseNet architecture on grayscale (sum of polarities) images from the\n'
-                    'data_path and save results to the given log_path (3 files will be created here: checkpoint,\n'
-                    'model.json and model_weights_final.hdf5).')
+                    'data_path and save results to the log path (4 files will be created here: checkpoint, history,\n'
+                    'model.json and final_weights.hdf5).')
 
     parser.add_argument('--data_path', type=str, required=True,
                         help='Directory where all data is stored (must contain a "train" and a "test" folder\n'
