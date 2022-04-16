@@ -139,6 +139,21 @@ def train(training_set, validation_set, model,
     return model, history
 
 
+def plot_history(history):
+    # Plot 1
+    DataFrame(history).plot()
+
+    # Plot 2
+    fig, axs = plt.subplots(figsize=(16, 5), nrows=1, ncols=2)
+    axs[0].plot(history['val_loss'])
+    axs[0].set_title('Validation Loss History')
+    axs[0].set(xlabel='# epochs', ylabel='Loss value')
+    axs[1].plot(history['val_accuracy'])
+    axs[1].set_title('Validation Accuracy History')
+    axs[1].set(xlabel='# epochs', ylabel='Accuracy value')
+    plt.show()
+
+
 def evaluate(model, test_set, evaluation_steps: int):
     results = model.evaluate(test_set,
                              steps=evaluation_steps,
@@ -146,21 +161,6 @@ def evaluate(model, test_set, evaluation_steps: int):
     print('Performance:')
     for name, value in zip(model.metrics_names, results):
         print(f'   {name} -> {value}')
-
-
-def plot_history(history):
-    # Plot 1
-    DataFrame(history.history).plot()
-
-    # Plot 2
-    fig, axs = plt.subplots(figsize=(16, 5), nrows=1, ncols=2)
-    axs[0].plot(history.history['val_loss'])
-    axs[0].set_title('Validation Loss History')
-    axs[0].set(xlabel='# epochs', ylabel='Loss value')
-    axs[1].plot(history.history['val_accuracy'])
-    axs[1].set_title('Validation Accuracy History')
-    axs[1].set(xlabel='# epochs', ylabel='Accuracy value')
-    plt.show()
 
 
 class NoGPUError(Exception):
@@ -171,6 +171,8 @@ def main():
 
     # Load all given parameters --------------------------------------------------------------------#
     args = parse_args()
+
+    # Define output log directory ------------------------------------------------------------------#
     log_path = args.log_path
     if log_path is None or not isinstance(log_path, str):
         log_path = os.path.join(os.path.dirname(args.data_path), 'logs', os.path.basename(args.data_path))
@@ -225,7 +227,9 @@ def main():
     print('\n\nEvaluating the model...')
     evaluate(model=model, test_set=test_data,
              evaluation_steps=NUM_TEST_SAMPLES//args.batch_size)
-    plot_history(history=history)
+
+    # Plot training history ------------------------------------------------------------------------#
+    plot_history(history=history.history)
 
 
 if __name__ == "__main__":
