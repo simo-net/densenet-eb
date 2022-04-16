@@ -144,11 +144,16 @@ def train(training_set, validation_set, model,
     return model, history
 
 
-def evaluate(model, test_set, history):
-    # Print score
-    loss, acc = model.evaluate(test_set, verbose=1)
-    print(f'Performance: loss = {round(loss,4)}, accuracy {round(acc,4)}')
+def evaluate(model, test_set, evaluation_steps: int):
+    results = model.evaluate(test_set,
+                             steps=evaluation_steps,
+                             verbose=True)
+    print('Performance:')
+    for name, value in zip(model.metrics_names, results):
+        print(f'   {name} -> {value}')
 
+
+def plot_history(history):
     # Plot 1
     DataFrame(history.history).plot()
 
@@ -223,7 +228,9 @@ def main():
 
     # Evaluate model performance -------------------------------------------------------------------#
     print('\n\nEvaluating the model...')
-    evaluate(model=model, test_set=create_data_generator(test_data), history=history)
+    evaluate(model=model, test_set=create_data_generator(test_data),
+             evaluation_steps=NUM_TEST_SAMPLES//args.batch_size)
+    plot_history(history=history)
 
 
 if __name__ == "__main__":
