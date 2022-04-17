@@ -159,13 +159,17 @@ def plot_history(history):
     plt.show()
 
 
-def evaluate(model, test_set, evaluation_steps: int):
+def evaluate(model, test_set, evaluation_steps: int, eval_file: str):
     results = model.evaluate(test_set,
                              steps=evaluation_steps,
                              verbose=True)
+    res_dict = {}
     print('Performance:')
     for name, value in zip(model.metrics_names, results):
         print(f'   {name} -> {value}')
+        res_dict[name] = value
+    with open(eval_file, "w+") as f:
+        json.dump(res_dict, f, indent=2)
 
 
 class NoGPUError(Exception):
@@ -231,7 +235,8 @@ def main():
     # Evaluate model performance -------------------------------------------------------------------#
     print('\n\nEvaluating the model...')
     evaluate(model=model, test_set=create_data_generator(test_data),
-             evaluation_steps=NUM_TEST_SAMPLES//args.batch_size)
+             evaluation_steps=NUM_TEST_SAMPLES//args.batch_size,
+             eval_file=os.path.join(log_path, 'evaluation.json'))
 
     # Plot training history ------------------------------------------------------------------------#
     plot_history(history=history.history)
